@@ -52,12 +52,13 @@ export async function uploadMetadataToIPFS(
 export interface PinataPin {
   ipfs_pin_hash: string;
   metadata: { name: string };
+  mime_type: string;
   date_pinned: string;
 }
 
 export async function listRecentPins(config: PinataConfig, limit = 3): Promise<PinataPin[]> {
   const res = await fetch(
-    `https://api.pinata.cloud/data/pinList?status=pinned&pageLimit=${limit}&sortBy=date_pinned&sortOrder=DESC`,
+    `https://api.pinata.cloud/data/pinList?status=pinned&pageLimit=20&sortBy=date_pinned&sortOrder=DESC`,
     {
       headers: {
         pinata_api_key: config.apiKey,
@@ -67,7 +68,10 @@ export async function listRecentPins(config: PinataConfig, limit = 3): Promise<P
   );
   if (!res.ok) throw new Error(`Pinata list failed: ${res.statusText}`);
   const data = await res.json();
-  return data.rows;
+  const images = (data.rows as PinataPin[]).filter(
+    (pin) => pin.mime_type && pin.mime_type.startsWith("image/")
+  );
+  return images.slice(0, limit);
 }
 
 export async function uploadSharedMetadata(

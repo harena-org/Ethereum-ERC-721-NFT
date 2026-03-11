@@ -110,17 +110,32 @@ export default function Home() {
       </nav>
 
       {/* Progress Bar */}
-      <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex items-center gap-1">
+      <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex items-center">
         {STEPS.map((_, i) => (
-          <div key={i} className="flex items-center flex-1 gap-1">
-            <span className={`text-[10px] font-semibold shrink-0 ${
-              i <= step ? "text-[#0ea5e9]" : "text-[#cbd5e1]"
-            }`}>{i + 1}</span>
-            <div
-              className={`flex-1 h-[3px] rounded-full transition-colors ${
+          <div key={i} className="flex items-center flex-1">
+            {i > 0 && (
+              <div className={`flex-1 h-[3px] transition-colors ${
                 i <= step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
+              }`} />
+            )}
+            <button
+              onClick={() => { if (i <= step) setStep(i); }}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-colors ${
+                i < step
+                  ? "bg-[#0ea5e9] text-white cursor-pointer hover:bg-[#0284c7]"
+                  : i === step
+                  ? "bg-[#0ea5e9] text-white ring-2 ring-[#0ea5e9]/30"
+                  : "bg-[#e2e8f0] text-[#94a3b8] cursor-default"
               }`}
-            />
+              disabled={i > step}
+            >
+              {i + 1}
+            </button>
+            {i < STEPS.length - 1 && (
+              <div className={`flex-1 h-[3px] transition-colors ${
+                i < step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
+              }`} />
+            )}
           </div>
         ))}
       </div>
@@ -173,7 +188,6 @@ export default function Home() {
                   imageCID={imageCID}
                   pinataConfig={pinataConfig}
                   explorerUrl={network.explorerUrl}
-                  apiUrl={network.apiUrl}
                   walletAddress={walletAddress}
                   onDeployed={(addr) => {
                     setContractAddress(addr);
