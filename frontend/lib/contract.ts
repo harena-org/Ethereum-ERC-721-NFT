@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { MyNFT_BYTECODE } from "./bytecode";
 
 // ABI - only the functions we need
 export const MyNFT_ABI = [
@@ -12,12 +13,7 @@ export const MyNFT_ABI = [
   "function owner() view returns (address)",
 ];
 
-// Bytecode placeholder — will be replaced in Task 13
-export let MyNFT_BYTECODE = "";
-
-export function setBytecode(bytecode: string) {
-  MyNFT_BYTECODE = bytecode;
-}
+export { MyNFT_BYTECODE };
 
 export async function getProvider() {
   if (typeof window === "undefined" || !window.ethereum) {
