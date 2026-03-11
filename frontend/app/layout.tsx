@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NFT Minting Tool",
+  title: "Ethereum ERC-721 NFT Mint Tool",
   description: "Deploy and batch mint ERC-721 NFTs on Ethereum",
 };
 

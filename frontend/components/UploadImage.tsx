@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { uploadImageToIPFS } from "@/lib/ipfs";
+import { uploadImageToIPFS, listRecentPins } from "@/lib/ipfs";
 import { formatError } from "@/lib/error";
-import type { PinataConfig } from "@/lib/ipfs";
+import type { PinataConfig, PinataPin } from "@/lib/ipfs";
 
 interface Props {
   onUploaded: (imageCID: string, pinataConfig: PinataConfig) => void;
@@ -18,7 +18,17 @@ export default function UploadImage({ onUploaded }: Props) {
   const [error, setError] = useState("");
   const [cid, setCid] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [recentPins, setRecentPins] = useState<PinataPin[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [copiedHash, setCopiedHash] = useState("");
+  const [manualCID, setManualCID] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function useCID(hash: string) {
+    const config = { apiKey, secretKey };
+    setCid(hash);
+    onUploaded(hash, config);
+  }
 
   function handleFile(f: File) {
     setFile(f);
@@ -105,13 +115,94 @@ export default function UploadImage({ onUploaded }: Props) {
         className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:border-[#0ea5e9]"
       />
 
-      <button
-        onClick={handleUpload}
-        disabled={loading || !file || !apiKey || !secretKey}
-        className="w-full py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#e2e8f0] disabled:text-[#94a3b8] text-white rounded-lg font-medium text-sm transition-colors"
-      >
-        {loading ? "Uploading..." : "Upload to IPFS"}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleUpload}
+          disabled={loading || !file || !apiKey || !secretKey}
+          className="flex-1 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#e2e8f0] disabled:text-[#94a3b8] text-white rounded-lg font-medium text-sm transition-colors"
+        >
+          {loading ? "Uploading..." : "Upload to IPFS"}
+        </button>
+        <button
+          onClick={async () => {
+            if (!apiKey || !secretKey) return;
+            setListLoading(true);
+            try {
+              const pins = await listRecentPins({ apiKey, secretKey }, 3);
+              setRecentPins(pins);
+            } catch (e: any) {
+              setError(formatError(e));
+            } finally {
+              setListLoading(false);
+            }
+          }}
+          disabled={listLoading || !apiKey || !secretKey}
+          className="px-4 py-2.5 bg-[#f1f5f9] border border-[#e2e8f0] hover:bg-[#e2e8f0] disabled:opacity-50 rounded-lg text-xs text-[#64748b] transition-colors whitespace-nowrap"
+        >
+          {listLoading ? "Loading..." : "List From IPFS"}
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-[#e2e8f0]" />
+        <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider">or use existing CID</span>
+        <div className="flex-1 h-px bg-[#e2e8f0]" />
+      </div>
+
+      {/* Manual CID input */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Paste IPFS CID, e.g. Qm..."
+          value={manualCID}
+          onChange={(e) => setManualCID(e.target.value)}
+          className="flex-1 bg-white border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:border-[#0ea5e9] font-mono"
+        />
+        <button
+          onClick={() => { if (manualCID.trim()) useCID(manualCID.trim()); }}
+          disabled={!manualCID.trim() || !apiKey || !secretKey}
+          className="px-4 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#e2e8f0] disabled:text-[#94a3b8] text-white rounded-lg font-medium text-xs transition-colors whitespace-nowrap"
+        >
+          Use This CID
+        </button>
+      </div>
+
+      {recentPins.length > 0 && (
+        <div className="rounded-lg border border-[#e2e8f0] overflow-hidden">
+          <div className="px-3 py-2 bg-[#f8fafc] border-b border-[#e2e8f0]">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Recent IPFS Files</p>
+          </div>
+          {recentPins.map((pin) => (
+            <div key={pin.ipfs_pin_hash} className="flex items-center justify-between px-3 py-2.5 border-b border-[#e2e8f0] last:border-b-0">
+              <div className="min-w-0 flex-1 mr-2">
+                <p className="text-xs text-[#0f172a] truncate">{pin.metadata?.name || "Untitled"}</p>
+                <p className="font-mono text-[10px] text-[#94a3b8] truncate">ipfs://{pin.ipfs_pin_hash}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => useCID(pin.ipfs_pin_hash)}
+                  disabled={!apiKey || !secretKey}
+                  className="px-2 py-1 text-[10px] rounded bg-[#0ea5e9] hover:bg-[#0284c7] text-white transition-colors disabled:opacity-50"
+                >
+                  Use
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(pin.ipfs_pin_hash);
+                    setCopiedHash(pin.ipfs_pin_hash);
+                    setTimeout(() => setCopiedHash(""), 2000);
+                  }}
+                  className="px-2 py-1 text-[10px] rounded border border-[#e2e8f0] hover:bg-[#f1f5f9] text-[#64748b] transition-colors"
+                >
+                  {copiedHash === pin.ipfs_pin_hash ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {/* Pinata help */}

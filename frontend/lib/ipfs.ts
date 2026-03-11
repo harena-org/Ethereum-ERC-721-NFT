@@ -49,6 +49,27 @@ export async function uploadMetadataToIPFS(
   return data.IpfsHash;
 }
 
+export interface PinataPin {
+  ipfs_pin_hash: string;
+  metadata: { name: string };
+  date_pinned: string;
+}
+
+export async function listRecentPins(config: PinataConfig, limit = 3): Promise<PinataPin[]> {
+  const res = await fetch(
+    `https://api.pinata.cloud/data/pinList?status=pinned&pageLimit=${limit}&sortBy=date_pinned&sortOrder=DESC`,
+    {
+      headers: {
+        pinata_api_key: config.apiKey,
+        pinata_secret_api_key: config.secretKey,
+      },
+    }
+  );
+  if (!res.ok) throw new Error(`Pinata list failed: ${res.statusText}`);
+  const data = await res.json();
+  return data.rows;
+}
+
 export async function uploadSharedMetadata(
   name: string,
   description: string,

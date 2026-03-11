@@ -40,7 +40,7 @@ export default function Home() {
       <nav className="border-b border-[#e2e8f0] bg-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center text-xs font-bold text-white">⬡</div>
-          <span className="text-[#0f172a] font-semibold text-sm">NFT Minting Tool</span>
+          <span className="text-[#0f172a] font-semibold text-sm">Ethereum ERC-721 NFT Mint Tool</span>
         </div>
         <div className="flex items-center gap-3">
           <NetworkSelector
@@ -62,6 +62,28 @@ export default function Home() {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowWalletMenu(false)} />
                   <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-[#e2e8f0] rounded-lg shadow-lg py-1 min-w-[160px]">
+                    <button
+                      onClick={async () => {
+                        setShowWalletMenu(false);
+                        try {
+                          await window.ethereum!.request({
+                            method: "wallet_requestPermissions",
+                            params: [{ eth_accounts: {} }],
+                          });
+                          const { ethers } = await import("ethers");
+                          const provider = new ethers.BrowserProvider(window.ethereum!);
+                          const s = await provider.getSigner();
+                          const addr = await s.getAddress();
+                          const bal = await provider.getBalance(addr);
+                          setSigner(s);
+                          setWalletAddress(addr);
+                          setWalletBalance(ethers.formatEther(bal));
+                        } catch {}
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-[#0f172a] hover:bg-[#f1f5f9] transition-colors"
+                    >
+                      Switch Account
+                    </button>
                     <button
                       onClick={() => {
                         setShowWalletMenu(false);
@@ -88,14 +110,18 @@ export default function Home() {
       </nav>
 
       {/* Progress Bar */}
-      <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex gap-1">
+      <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex items-center gap-1">
         {STEPS.map((_, i) => (
-          <div
-            key={i}
-            className={`flex-1 h-[3px] rounded-full transition-colors ${
-              i <= step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
-            }`}
-          />
+          <div key={i} className="flex items-center flex-1 gap-1">
+            <span className={`text-[10px] font-semibold shrink-0 ${
+              i <= step ? "text-[#0ea5e9]" : "text-[#cbd5e1]"
+            }`}>{i + 1}</span>
+            <div
+              className={`flex-1 h-[3px] rounded-full transition-colors ${
+                i <= step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
+              }`}
+            />
+          </div>
         ))}
       </div>
 
@@ -147,6 +173,8 @@ export default function Home() {
                   imageCID={imageCID}
                   pinataConfig={pinataConfig}
                   explorerUrl={network.explorerUrl}
+                  apiUrl={network.apiUrl}
+                  walletAddress={walletAddress}
                   onDeployed={(addr) => {
                     setContractAddress(addr);
                     setStep(4);
@@ -238,6 +266,21 @@ export default function Home() {
                 <p className="text-xs text-[#0f172a]">{network.name}</p>
                 <p className="text-[10px] text-[#94a3b8] mt-1">Chain ID: {network.chainId}</p>
               </div>
+
+              {imageCID && (
+                <div className="border-t border-[#e2e8f0] pt-4 mt-4">
+                  <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">IPFS Image</h4>
+                  <p className="font-mono text-[10px] text-[#0f172a] break-all">{imageCID}</p>
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${imageCID}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-[#0ea5e9] hover:underline mt-1 inline-block"
+                  >
+                    Preview &rarr;
+                  </a>
+                </div>
+              )}
 
               {contractAddress && (
                 <div className="border-t border-[#e2e8f0] pt-4 mt-4">
