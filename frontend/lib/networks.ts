@@ -8,17 +8,17 @@ export interface Network {
 
 export const NETWORKS: Network[] = [
   {
-    name: "Ethereum Mainnet",
-    chainId: 1,
-    chainIdHex: "0x1",
-    explorerUrl: "https://etherscan.io",
-  },
-  {
     name: "Sepolia Testnet",
     chainId: 11155111,
     chainIdHex: "0xaa36a7",
     explorerUrl: "https://sepolia.etherscan.io",
     rpcUrl: "https://rpc.sepolia.org",
+  },
+  {
+    name: "Ethereum Mainnet",
+    chainId: 1,
+    chainIdHex: "0x1",
+    explorerUrl: "https://etherscan.io",
   },
   {
     name: "Holesky Testnet",
