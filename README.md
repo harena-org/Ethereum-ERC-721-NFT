@@ -4,9 +4,9 @@
 
 一个 Web 端工具，用于在以太坊上部署 ERC-721 NFT 合约并批量铸造 NFT。所有 NFT 共享同一张图片，适合大规模批量铸造场景。
 
-![Screenshot 1](screenshot/ScreenShot_2026-03-11_200436_079.png)
-![Screenshot 2](screenshot/ScreenShot_2026-03-11_200455_809.png)
-![Screenshot 3](screenshot/ScreenShot_2026-03-11_200517_732.png)
+![Screenshot 1](./screenshot/ScreenShot_2026-03-11_200436_079.png)
+![Screenshot 2](./screenshot/ScreenShot_2026-03-11_200455_809.png)
+![Screenshot 3](./screenshot/ScreenShot_2026-03-11_200517_732.png)
 
 ## 功能特性
 
