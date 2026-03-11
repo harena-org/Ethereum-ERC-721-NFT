@@ -4,6 +4,10 @@ English | [中文](./README.md)
 
 A web-based tool for deploying ERC-721 NFT contracts on Ethereum and batch minting NFTs. All NFTs share the same image, designed for large-scale batch minting.
 
+screenshot/ScreenShot_2026-03-11_200436_079.png
+screenshot/ScreenShot_2026-03-11_200455_809.png
+screenshot/ScreenShot_2026-03-11_200517_732.png
+
 ## Features
 
 - **Task Card Dashboard** — Three task cards (Prepare Image → Deploy Contract → Mint NFTs) with clear status tracking
