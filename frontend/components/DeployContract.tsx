@@ -52,7 +52,7 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
     return (
       <div className="p-3 rounded-lg bg-[#0ea5e9]/5 border border-[#0ea5e9]/20">
         <p className="text-sm text-[#0ea5e9] font-medium mb-1">Contract Deployed</p>
-        <p className="font-mono text-xs text-[#94a3b8] break-all mb-1">{contractAddress}</p>
+        <p className="font-mono text-xs text-[#64748b] break-all mb-1">{contractAddress}</p>
         <a
           href={`${explorerUrl}/address/${contractAddress}`}
           target="_blank"
@@ -72,17 +72,17 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
         placeholder="Collection Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:border-[#0ea5e9]"
       />
       <input
         type="text"
         placeholder="Symbol (e.g. MNFT)"
         value={symbol}
         onChange={(e) => setSymbol(e.target.value)}
-        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:border-[#0ea5e9]"
       />
       {loading && (
-        <div className="flex items-center gap-2 text-xs text-[#94a3b8]">
+        <div className="flex items-center gap-2 text-xs text-[#64748b]">
           <div className="w-3 h-3 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
           {status}
         </div>
@@ -90,11 +90,11 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
       <button
         onClick={handleDeploy}
         disabled={loading || !name || !symbol}
-        className="w-full py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#1e1e3a] disabled:text-[#475569] rounded-lg font-medium text-sm transition-colors"
+        className="w-full py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#e2e8f0] disabled:text-[#94a3b8] text-white rounded-lg font-medium text-sm transition-colors"
       >
         {loading ? "Deploying..." : "Deploy Contract"}
       </button>
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   );
 }

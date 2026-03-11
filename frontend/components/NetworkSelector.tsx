@@ -36,7 +36,7 @@ export default function NetworkSelector({ onNetworkChange, disabled }: Props) {
         value={selected.chainId}
         onChange={handleChange}
         disabled={disabled || switching}
-        className="bg-[#0c0c1a] border border-[#1e1e3a] rounded-md px-3 py-1.5 text-xs text-[#94a3b8] disabled:opacity-50 focus:outline-none focus:border-[#0ea5e9]"
+        className="bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-3 py-1.5 text-xs text-[#64748b] disabled:opacity-50 focus:outline-none focus:border-[#0ea5e9]"
       >
         {NETWORKS.map((n) => (
           <option key={n.chainId} value={n.chainId}>
@@ -44,8 +44,8 @@ export default function NetworkSelector({ onNetworkChange, disabled }: Props) {
           </option>
         ))}
       </select>
-      {switching && <span className="text-xs text-[#475569]">Switching...</span>}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {switching && <span className="text-xs text-[#94a3b8]">Switching...</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );
 }
