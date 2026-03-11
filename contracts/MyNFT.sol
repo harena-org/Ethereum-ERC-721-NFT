@@ -9,14 +9,14 @@ contract MyNFT is ERC721, Ownable {
     using Strings for uint256;
 
     uint256 private _nextTokenId = 1;
-    string private _baseTokenURI;
+    string private _sharedTokenURI;
 
     constructor(
         string memory name,
         string memory symbol,
-        string memory baseTokenURI
+        string memory sharedTokenURI
     ) ERC721(name, symbol) Ownable(msg.sender) {
-        _baseTokenURI = baseTokenURI;
+        _sharedTokenURI = sharedTokenURI;
     }
 
     function mintBatch(address to, uint256 quantity) external onlyOwner {
@@ -28,7 +28,7 @@ contract MyNFT is ERC721, Ownable {
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
-        return string.concat(_baseTokenURI, tokenId.toString());
+        return _sharedTokenURI;
     }
 
     function totalSupply() public view returns (uint256) {

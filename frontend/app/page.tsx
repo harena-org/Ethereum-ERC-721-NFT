@@ -30,6 +30,7 @@ export default function Home() {
   const [mintQuantity] = useState(10000);
   const [txHashes, setTxHashes] = useState<string[]>([]);
   const [totalCostETH, setTotalCostETH] = useState("");
+  const [showWalletMenu, setShowWalletMenu] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
@@ -45,11 +46,40 @@ export default function Home() {
             disabled={step > 0}
           />
           {walletAddress && (
-            <div className="flex items-center gap-2 bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-3 py-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="font-mono text-xs text-[#64748b]">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </span>
+            <div className="relative">
+              <button
+                onClick={() => setShowWalletMenu((v) => !v)}
+                className="flex items-center gap-2 bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-3 py-1.5 hover:bg-[#e2e8f0] transition-colors cursor-pointer"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="font-mono text-xs text-[#64748b]">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
+              </button>
+              {showWalletMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowWalletMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-[#e2e8f0] rounded-lg shadow-lg py-1 min-w-[160px]">
+                    <button
+                      onClick={() => {
+                        setShowWalletMenu(false);
+                        setSigner(null);
+                        setWalletAddress("");
+                        setWalletBalance("");
+                        setImageCID("");
+                        setPinataConfig(null);
+                        setContractAddress("");
+                        setTxHashes([]);
+                        setTotalCostETH("");
+                        setStep(0);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#fef2f2] transition-colors"
+                    >
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -106,7 +136,6 @@ export default function Home() {
                   signer={signer}
                   imageCID={imageCID}
                   pinataConfig={pinataConfig}
-                  mintQuantity={mintQuantity}
                   explorerUrl={network.explorerUrl}
                   onDeployed={(addr) => {
                     setContractAddress(addr);

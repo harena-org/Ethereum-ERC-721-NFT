@@ -47,9 +47,11 @@ describe("MyNFT", function () {
   });
 
   describe("tokenURI", function () {
-    it("should return baseURI + tokenId", async function () {
-      await nft.mintBatch(owner.address, 1);
-      expect(await nft.tokenURI(1)).to.equal("ipfs://QmTestHash/1");
+    it("should return shared tokenURI for all tokens", async function () {
+      await nft.mintBatch(owner.address, 3);
+      expect(await nft.tokenURI(1)).to.equal("ipfs://QmTestHash/");
+      expect(await nft.tokenURI(2)).to.equal("ipfs://QmTestHash/");
+      expect(await nft.tokenURI(3)).to.equal("ipfs://QmTestHash/");
     });
 
     it("should revert for non-existent token", async function () {

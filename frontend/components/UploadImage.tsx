@@ -112,6 +112,17 @@ export default function UploadImage({ onUploaded }: Props) {
         {loading ? "Uploading..." : "Upload to IPFS"}
       </button>
       {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      {/* Pinata help */}
+      <div className="rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] p-4 text-xs text-[#64748b] space-y-2">
+        <p className="font-medium text-[#475569]">How to get Pinata API Key?</p>
+        <ol className="list-decimal list-inside space-y-1">
+          <li>Visit <a href="https://app.pinata.cloud" target="_blank" rel="noopener noreferrer" className="text-[#0ea5e9] hover:underline">app.pinata.cloud</a> and sign up</li>
+          <li>Go to <strong>API Keys</strong> page</li>
+          <li>Click <strong>New Key</strong> to generate API Key and API Secret</li>
+          <li>Free tier includes 1GB storage + 100 requests/month</li>
+        </ol>
+      </div>
     </div>
   );
 }

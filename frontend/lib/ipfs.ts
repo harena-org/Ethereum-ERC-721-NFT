@@ -49,44 +49,17 @@ export async function uploadMetadataToIPFS(
   return data.IpfsHash;
 }
 
-export async function uploadMetadataBatch(
+export async function uploadSharedMetadata(
   name: string,
   description: string,
   imageCID: string,
-  totalSupply: number,
   config: PinataConfig
 ): Promise<string> {
-  const files: { name: string; content: string }[] = [];
+  const metadata = {
+    name,
+    description,
+    image: `ipfs://${imageCID}`,
+  };
 
-  for (let i = 1; i <= totalSupply; i++) {
-    files.push({
-      name: `${i}`,
-      content: JSON.stringify({
-        name: `${name} #${i}`,
-        description,
-        image: `ipfs://${imageCID}`,
-      }),
-    });
-  }
-
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append("file", new Blob([file.content]), `metadata/${file.name}`);
-  }
-
-  const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-    method: "POST",
-    headers: {
-      pinata_api_key: config.apiKey,
-      pinata_secret_api_key: config.secretKey,
-    },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Pinata folder upload failed: ${res.statusText}`);
-  }
-
-  const data = await res.json();
-  return data.IpfsHash;
+  return uploadMetadataToIPFS(metadata, config);
 }

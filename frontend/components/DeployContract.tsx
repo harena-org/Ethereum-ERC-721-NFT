@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 import { deployContract } from "@/lib/contract";
-import { uploadMetadataBatch } from "@/lib/ipfs";
+import { uploadSharedMetadata } from "@/lib/ipfs";
 import type { PinataConfig } from "@/lib/ipfs";
 
 interface Props {
   signer: any;
   imageCID: string;
   pinataConfig: PinataConfig;
-  mintQuantity: number;
   explorerUrl: string;
   onDeployed: (contractAddress: string) => void;
 }
 
-export default function DeployContract({ signer, imageCID, pinataConfig, mintQuantity, explorerUrl, onDeployed }: Props) {
+export default function DeployContract({ signer, imageCID, pinataConfig, explorerUrl, onDeployed }: Props) {
   const [name, setName] = useState("MyNFT");
   const [symbol, setSymbol] = useState("MNFT");
   const [loading, setLoading] = useState(false);
@@ -27,14 +26,13 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
     setError("");
     try {
       setStatus("Uploading metadata to IPFS...");
-      const metadataCID = await uploadMetadataBatch(
+      const metadataCID = await uploadSharedMetadata(
         name,
         `${name} Collection`,
         imageCID,
-        mintQuantity,
         pinataConfig
       );
-      const baseURI = `ipfs://${metadataCID}/`;
+      const baseURI = `ipfs://${metadataCID}`;
 
       setStatus("Deploying contract...");
       const { address } = await deployContract(signer, name, symbol, baseURI);
@@ -95,6 +93,13 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
         {loading ? "Deploying..." : "Deploy Contract"}
       </button>
       {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      <div className="rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] p-4 text-xs text-[#64748b] space-y-1">
+        <p className="font-medium text-[#475569]">About these fields</p>
+        <p><strong>Collection Name</strong> — Your NFT collection name, e.g. CoolCats, BoredApe. Shown on OpenSea and other marketplaces.</p>
+        <p><strong>Symbol</strong> — Short token symbol (like a stock ticker), e.g. COOL, BAYC. Usually 3-5 uppercase letters.</p>
+        <p>Defaults are <code className="bg-white px-1 rounded">MyNFT</code> / <code className="bg-white px-1 rounded">MNFT</code> — feel free to customize.</p>
+      </div>
     </div>
   );
 }
