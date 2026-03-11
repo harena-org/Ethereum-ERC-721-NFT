@@ -3,52 +3,58 @@ interface Props {
   totalMinted: number;
   txHashes: string[];
   totalCostETH: string;
+  explorerUrl: string;
 }
 
-export default function ResultPanel({ contractAddress, totalMinted, txHashes, totalCostETH }: Props) {
+export default function ResultPanel({ contractAddress, totalMinted, txHashes, totalCostETH, explorerUrl }: Props) {
   return (
-    <div className="rounded-lg border border-green-800 bg-green-950/30 p-6 space-y-4">
-      <h3 className="text-lg font-bold text-green-400">Minting Complete!</h3>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-sm">✓</div>
+        <h3 className="text-lg font-semibold text-emerald-400">Minting Complete</h3>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <p className="text-gray-400">Contract Address</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-lg bg-[#0c0c1a] border border-[#141428]">
+          <p className="text-[10px] uppercase tracking-wider text-[#475569] mb-1">Contract</p>
           <a
-            href={`https://etherscan.io/address/${contractAddress}`}
+            href={`${explorerUrl}/address/${contractAddress}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 hover:underline font-mono text-xs break-all"
+            className="text-[#0ea5e9] hover:underline font-mono text-xs break-all"
           >
             {contractAddress}
           </a>
         </div>
-        <div>
-          <p className="text-gray-400">Total Minted</p>
-          <p className="text-white font-medium">{totalMinted.toLocaleString()}</p>
+        <div className="p-3 rounded-lg bg-[#0c0c1a] border border-[#141428]">
+          <p className="text-[10px] uppercase tracking-wider text-[#475569] mb-1">Total Minted</p>
+          <p className="text-[#e2e8f0] font-semibold">{totalMinted.toLocaleString()}</p>
         </div>
-        <div>
-          <p className="text-gray-400">Total Transactions</p>
-          <p className="text-white font-medium">{txHashes.length}</p>
+        <div className="p-3 rounded-lg bg-[#0c0c1a] border border-[#141428]">
+          <p className="text-[10px] uppercase tracking-wider text-[#475569] mb-1">Transactions</p>
+          <p className="text-[#e2e8f0] font-semibold">{txHashes.length}</p>
         </div>
-        <div>
-          <p className="text-gray-400">Estimated Gas Cost</p>
-          <p className="text-white font-medium">{totalCostETH} ETH</p>
+        <div className="p-3 rounded-lg bg-[#0c0c1a] border border-[#141428]">
+          <p className="text-[10px] uppercase tracking-wider text-[#475569] mb-1">Gas Cost</p>
+          <p className="text-[#e2e8f0] font-semibold">{totalCostETH} ETH</p>
         </div>
       </div>
 
-      <div className="text-sm">
-        <p className="text-gray-400 mb-1">Transaction Hashes</p>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-[#475569] mb-2">Transaction Hashes</p>
         <div className="max-h-32 overflow-y-auto space-y-1">
           {txHashes.map((hash, i) => (
-            <a
-              key={hash}
-              href={`https://etherscan.io/tx/${hash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-blue-400 hover:underline font-mono text-xs"
-            >
-              {i + 1}. {hash}
-            </a>
+            <div key={hash} className="flex items-center justify-between text-xs py-1">
+              <span className="text-[#334155]">{i + 1}.</span>
+              <a
+                href={`${explorerUrl}/tx/${hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0ea5e9] hover:underline font-mono"
+              >
+                {hash}
+              </a>
+            </div>
           ))}
         </div>
       </div>

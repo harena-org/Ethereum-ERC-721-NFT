@@ -10,16 +10,12 @@ interface Props {
 export default function ConnectWallet({ onConnected }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [address, setAddress] = useState("");
-  const [balance, setBalance] = useState("");
 
   async function handleConnect() {
     setLoading(true);
     setError("");
     try {
       const wallet = await connectWallet();
-      setAddress(wallet.address);
-      setBalance(wallet.balance);
       onConnected(wallet.address, wallet.balance, wallet.signer);
     } catch (e: any) {
       setError(e.message || "Failed to connect wallet");
@@ -28,26 +24,21 @@ export default function ConnectWallet({ onConnected }: Props) {
     }
   }
 
-  if (address) {
-    return (
-      <div className="rounded-lg border border-gray-800 p-4">
-        <p className="text-sm text-gray-400">Connected</p>
-        <p className="font-mono text-sm">{address.slice(0, 6)}...{address.slice(-4)}</p>
-        <p className="text-sm text-gray-400 mt-1">{parseFloat(balance).toFixed(4)} ETH</p>
-      </div>
-    );
-  }
-
   return (
-    <div>
+    <div className="flex flex-col items-center justify-center py-16">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center text-2xl mb-6">
+        ⬡
+      </div>
+      <h2 className="text-xl font-semibold text-[#e2e8f0] mb-2">Connect Your Wallet</h2>
+      <p className="text-sm text-[#475569] mb-8">Connect MetaMask to start deploying and minting NFTs</p>
       <button
         onClick={handleConnect}
         disabled={loading}
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded-lg font-medium transition"
+        className="px-8 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#1e1e3a] disabled:text-[#475569] rounded-lg font-medium text-sm transition-colors"
       >
         {loading ? "Connecting..." : "Connect MetaMask"}
       </button>
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
     </div>
   );
 }

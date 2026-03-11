@@ -10,10 +10,11 @@ interface Props {
   imageCID: string;
   pinataConfig: PinataConfig;
   mintQuantity: number;
+  explorerUrl: string;
   onDeployed: (contractAddress: string) => void;
 }
 
-export default function DeployContract({ signer, imageCID, pinataConfig, mintQuantity, onDeployed }: Props) {
+export default function DeployContract({ signer, imageCID, pinataConfig, mintQuantity, explorerUrl, onDeployed }: Props) {
   const [name, setName] = useState("MyNFT");
   const [symbol, setSymbol] = useState("MNFT");
   const [loading, setLoading] = useState(false);
@@ -49,16 +50,16 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
 
   if (contractAddress) {
     return (
-      <div className="rounded-lg border border-gray-800 p-4">
-        <p className="text-sm text-gray-400">Contract Deployed</p>
-        <p className="font-mono text-sm break-all">{contractAddress}</p>
+      <div className="p-3 rounded-lg bg-[#0ea5e9]/5 border border-[#0ea5e9]/20">
+        <p className="text-sm text-[#0ea5e9] font-medium mb-1">Contract Deployed</p>
+        <p className="font-mono text-xs text-[#94a3b8] break-all mb-1">{contractAddress}</p>
         <a
-          href={`https://etherscan.io/address/${contractAddress}`}
+          href={`${explorerUrl}/address/${contractAddress}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-400 text-sm hover:underline"
+          className="text-xs text-[#0ea5e9] hover:underline"
         >
-          View on Etherscan
+          View on Explorer &rarr;
         </a>
       </div>
     );
@@ -66,30 +67,34 @@ export default function DeployContract({ signer, imageCID, pinataConfig, mintQua
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="Collection Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm"
-        />
-        <input
-          type="text"
-          placeholder="Symbol"
-          value={symbol}
-          onChange={(e) => setSymbol(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm"
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Collection Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+      />
+      <input
+        type="text"
+        placeholder="Symbol (e.g. MNFT)"
+        value={symbol}
+        onChange={(e) => setSymbol(e.target.value)}
+        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+      />
+      {loading && (
+        <div className="flex items-center gap-2 text-xs text-[#94a3b8]">
+          <div className="w-3 h-3 border-2 border-[#0ea5e9] border-t-transparent rounded-full animate-spin" />
+          {status}
+        </div>
+      )}
       <button
         onClick={handleDeploy}
         disabled={loading || !name || !symbol}
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded-lg font-medium transition"
+        className="w-full py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#1e1e3a] disabled:text-[#475569] rounded-lg font-medium text-sm transition-colors"
       >
-        {loading ? status || "Deploying..." : "Deploy Contract"}
+        {loading ? "Deploying..." : "Deploy Contract"}
       </button>
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
     </div>
   );
 }

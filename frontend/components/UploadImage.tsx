@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { uploadImageToIPFS } from "@/lib/ipfs";
 import type { PinataConfig } from "@/lib/ipfs";
 
@@ -16,13 +16,24 @@ export default function UploadImage({ onUploaded }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cid, setCid] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(f: File) {
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
-    }
+    if (f) handleFile(f);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
   }
 
   async function handleUpload() {
@@ -43,44 +54,68 @@ export default function UploadImage({ onUploaded }: Props) {
 
   if (cid) {
     return (
-      <div className="rounded-lg border border-gray-800 p-4">
-        <p className="text-sm text-gray-400">Image uploaded to IPFS</p>
-        <p className="font-mono text-sm break-all">ipfs://{cid}</p>
-        {preview && <img src={preview} alt="NFT" className="mt-2 w-32 h-32 object-cover rounded" />}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0ea5e9]/5 border border-[#0ea5e9]/20">
+          {preview && <img src={preview} alt="NFT" className="w-12 h-12 object-cover rounded-lg" />}
+          <div className="min-w-0">
+            <p className="text-sm text-[#0ea5e9] font-medium">Uploaded to IPFS</p>
+            <p className="font-mono text-xs text-[#475569] truncate">ipfs://{cid}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="Pinata API Key"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm"
-        />
-        <input
-          type="password"
-          placeholder="Pinata Secret Key"
-          value={secretKey}
-          onChange={(e) => setSecretKey(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm"
-        />
+      {/* Drop zone */}
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+          dragOver ? "border-[#0ea5e9] bg-[#0ea5e9]/5" : "border-[#1e1e3a] hover:border-[#2d2d4a]"
+        }`}
+      >
+        {preview ? (
+          <div className="flex flex-col items-center gap-3">
+            <img src={preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+            <p className="text-xs text-[#94a3b8]">{file?.name}</p>
+          </div>
+        ) : (
+          <>
+            <div className="text-3xl mb-2">📁</div>
+            <p className="text-sm text-[#475569]">Drag & drop or click to browse</p>
+          </>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>
-      <div className="flex items-center gap-4">
-        <input type="file" accept="image/*" onChange={handleFileChange} className="text-sm" />
-        {preview && <img src={preview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
-      </div>
+
+      {/* Pinata keys */}
+      <input
+        type="text"
+        placeholder="Pinata API Key"
+        value={apiKey}
+        onChange={(e) => setApiKey(e.target.value)}
+        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+      />
+      <input
+        type="password"
+        placeholder="Pinata Secret Key"
+        value={secretKey}
+        onChange={(e) => setSecretKey(e.target.value)}
+        className="w-full bg-[#0c0c1a] border border-[#1e1e3a] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#0ea5e9]"
+      />
+
       <button
         onClick={handleUpload}
         disabled={loading || !file || !apiKey || !secretKey}
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded-lg font-medium transition"
+        className="w-full py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#1e1e3a] disabled:text-[#475569] rounded-lg font-medium text-sm transition-colors"
       >
         {loading ? "Uploading..." : "Upload to IPFS"}
       </button>
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
     </div>
   );
 }
