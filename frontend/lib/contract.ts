@@ -59,14 +59,16 @@ export async function mintBatch(
   const batchSize = 500;
   const totalBatches = Math.ceil(quantity / batchSize);
   const txHashes: string[] = [];
+  let totalGasUsed = 0n;
 
   for (let i = 0; i < totalBatches; i++) {
     const currentBatch = Math.min(batchSize, quantity - i * batchSize);
     const tx = await contract.mintBatch(to, currentBatch);
     const receipt = await tx.wait();
     txHashes.push(receipt.hash);
+    totalGasUsed += BigInt(receipt.gasUsed) * BigInt(receipt.effectiveGasPrice ?? 0);
     onBatchComplete?.(i + 1, totalBatches, receipt.hash);
   }
 
-  return txHashes;
+  return { txHashes, totalCostETH: ethers.formatEther(totalGasUsed) };
 }

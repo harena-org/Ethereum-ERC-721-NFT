@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConnectWallet from "@/components/ConnectWallet";
 import UploadImage from "@/components/UploadImage";
 import DeployContract from "@/components/DeployContract";
+import GasOverview from "@/components/GasOverview";
 import BatchMint from "@/components/BatchMint";
 import ResultPanel from "@/components/ResultPanel";
 import NetworkSelector from "@/components/NetworkSelector";
@@ -12,6 +13,7 @@ import type { PinataConfig } from "@/lib/ipfs";
 
 const STEPS = [
   { label: "Connect Wallet", desc: "Link your MetaMask wallet" },
+  { label: "Gas Overview", desc: "Check balance and gas costs" },
   { label: "Upload Image", desc: "Upload NFT artwork to IPFS" },
   { label: "Deploy Contract", desc: "Deploy ERC-721 to Ethereum" },
   { label: "Batch Mint", desc: "Mint NFTs in batches of 500" },
@@ -27,7 +29,7 @@ export default function Home() {
   const [imageCID, setImageCID] = useState("");
   const [pinataConfig, setPinataConfig] = useState<PinataConfig | null>(null);
   const [contractAddress, setContractAddress] = useState("");
-  const [mintQuantity] = useState(10000);
+  const [mintQuantity, setMintQuantity] = useState(0);
   const [txHashes, setTxHashes] = useState<string[]>([]);
   const [totalCostETH, setTotalCostETH] = useState("");
   const [showWalletMenu, setShowWalletMenu] = useState(false);
@@ -110,8 +112,8 @@ export default function Home() {
           />
         </div>
       ) : (
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-[1fr_300px] gap-6">
+        <div className="max-w-3xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-[1fr_240px] gap-5">
             {/* Left: Action Area */}
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
               <div className="mb-1 flex items-center gap-3">
@@ -122,16 +124,24 @@ export default function Home() {
               <p className="text-sm text-[#64748b] mb-6">{STEPS[step].desc}</p>
 
               {step === 1 && (
+                <GasOverview
+                  walletAddress={walletAddress}
+                  walletBalance={walletBalance}
+                  onContinue={() => setStep(2)}
+                />
+              )}
+
+              {step === 2 && (
                 <UploadImage
                   onUploaded={(cid, config) => {
                     setImageCID(cid);
                     setPinataConfig(config);
-                    setStep(2);
+                    setStep(3);
                   }}
                 />
               )}
 
-              {step === 2 && pinataConfig && (
+              {step === 3 && pinataConfig && (
                 <DeployContract
                   signer={signer}
                   imageCID={imageCID}
@@ -139,26 +149,27 @@ export default function Home() {
                   explorerUrl={network.explorerUrl}
                   onDeployed={(addr) => {
                     setContractAddress(addr);
-                    setStep(3);
-                  }}
-                />
-              )}
-
-              {step === 3 && (
-                <BatchMint
-                  signer={signer}
-                  contractAddress={contractAddress}
-                  walletAddress={walletAddress}
-                  explorerUrl={network.explorerUrl}
-                  onComplete={(hashes, cost) => {
-                    setTxHashes(hashes);
-                    setTotalCostETH(cost);
                     setStep(4);
                   }}
                 />
               )}
 
               {step === 4 && (
+                <BatchMint
+                  signer={signer}
+                  contractAddress={contractAddress}
+                  walletAddress={walletAddress}
+                  explorerUrl={network.explorerUrl}
+                  onComplete={(hashes, cost, qty) => {
+                    setTxHashes(hashes);
+                    setTotalCostETH(cost);
+                    setMintQuantity(qty);
+                    setStep(5);
+                  }}
+                />
+              )}
+
+              {step === 5 && (
                 <ResultPanel
                   contractAddress={contractAddress}
                   totalMinted={mintQuantity}
@@ -202,7 +213,23 @@ export default function Home() {
                 <div className="border-t border-[#e2e8f0] pt-4 mb-4">
                   <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">Wallet</h4>
                   <p className="font-mono text-xs text-[#0f172a] break-all">{walletAddress}</p>
-                  <p className="text-xs text-[#64748b] mt-1">{parseFloat(walletBalance).toFixed(4)} ETH</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-xs text-[#64748b]">{parseFloat(walletBalance).toFixed(4)} ETH</p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { ethers } = await import("ethers");
+                          const provider = new ethers.BrowserProvider(window.ethereum!);
+                          const bal = await provider.getBalance(walletAddress);
+                          setWalletBalance(ethers.formatEther(bal));
+                        } catch {}
+                      }}
+                      className="text-[#94a3b8] hover:text-[#0ea5e9] transition-colors"
+                      title="Refresh balance"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 

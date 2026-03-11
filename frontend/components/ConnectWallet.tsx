@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { connectWallet } from "@/lib/contract";
+import { formatError } from "@/lib/error";
 
 interface Props {
   onConnected: (address: string, balance: string, signer: any) => void;
@@ -18,7 +19,7 @@ export default function ConnectWallet({ onConnected }: Props) {
       const wallet = await connectWallet();
       onConnected(wallet.address, wallet.balance, wallet.signer);
     } catch (e: any) {
-      setError(e.message || "Failed to connect wallet");
+      setError(formatError(e));
     } finally {
       setLoading(false);
     }

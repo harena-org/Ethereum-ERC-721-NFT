@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deployContract } from "@/lib/contract";
+import { formatError } from "@/lib/error";
 import { uploadSharedMetadata } from "@/lib/ipfs";
 import type { PinataConfig } from "@/lib/ipfs";
 
@@ -40,7 +41,7 @@ export default function DeployContract({ signer, imageCID, pinataConfig, explore
       setStatus("");
       onDeployed(address);
     } catch (e: any) {
-      setError(e.message || "Deploy failed");
+      setError(formatError(e));
     } finally {
       setLoading(false);
     }

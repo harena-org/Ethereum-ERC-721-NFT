@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { uploadImageToIPFS } from "@/lib/ipfs";
+import { formatError } from "@/lib/error";
 import type { PinataConfig } from "@/lib/ipfs";
 
 interface Props {
@@ -46,7 +47,7 @@ export default function UploadImage({ onUploaded }: Props) {
       setCid(hash);
       onUploaded(hash, config);
     } catch (e: any) {
-      setError(e.message || "Upload failed");
+      setError(formatError(e));
     } finally {
       setLoading(false);
     }

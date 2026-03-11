@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { mintBatch } from "@/lib/contract";
+import { formatError } from "@/lib/error";
 import { estimateGasPrice, estimateMintCost } from "@/lib/gas";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   contractAddress: string;
   walletAddress: string;
   explorerUrl: string;
-  onComplete: (txHashes: string[], totalGasUsed: string) => void;
+  onComplete: (txHashes: string[], totalGasUsed: string, quantity: number) => void;
 }
 
 export default function BatchMint({ signer, contractAddress, walletAddress, explorerUrl, onComplete }: Props) {
@@ -27,7 +28,7 @@ export default function BatchMint({ signer, contractAddress, walletAddress, expl
       const cost = estimateMintCost(quantity, gasPrice);
       setEstimate(cost);
     } catch (e: any) {
-      setError(e.message);
+      setError(formatError(e));
     }
   }
 
@@ -40,13 +41,13 @@ export default function BatchMint({ signer, contractAddress, walletAddress, expl
     setTotalBatches(batches);
 
     try {
-      const hashes = await mintBatch(signer, contractAddress, walletAddress, quantity, (batch, total, hash) => {
+      const result = await mintBatch(signer, contractAddress, walletAddress, quantity, (batch, total, hash) => {
         setCurrentBatch(batch);
         setTxHashes((prev) => [...prev, hash]);
       });
-      onComplete(hashes, estimate?.totalCostETH || "unknown");
+      onComplete(result.txHashes, result.totalCostETH, quantity);
     } catch (e: any) {
-      setError(e.message || "Minting failed");
+      setError(formatError(e));
     } finally {
       setLoading(false);
     }
