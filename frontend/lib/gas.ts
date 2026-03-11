@@ -4,7 +4,7 @@ export async function estimateGasPrice(): Promise<{
   gasPrice: bigint;
   gasPriceGwei: string;
 }> {
-  const provider = new ethers.BrowserProvider(window.ethereum);
+  const provider = new ethers.BrowserProvider(window.ethereum!);
   const feeData = await provider.getFeeData();
   const gasPrice = feeData.gasPrice ?? 0n;
   return {
