@@ -4,7 +4,6 @@ export interface Network {
   chainIdHex: string;
   explorerUrl: string;
   rpcUrl?: string;
-  apiUrl: string;
 }
 
 export const NETWORKS: Network[] = [
@@ -13,7 +12,6 @@ export const NETWORKS: Network[] = [
     chainId: 11155111,
     chainIdHex: "0xaa36a7",
     explorerUrl: "https://sepolia.etherscan.io",
-    apiUrl: "https://api-sepolia.etherscan.io/api",
     rpcUrl: "https://rpc.sepolia.org",
   },
   {
@@ -21,14 +19,12 @@ export const NETWORKS: Network[] = [
     chainId: 1,
     chainIdHex: "0x1",
     explorerUrl: "https://etherscan.io",
-    apiUrl: "https://api.etherscan.io/api",
   },
   {
     name: "Holesky Testnet",
     chainId: 17000,
     chainIdHex: "0x4268",
     explorerUrl: "https://holesky.etherscan.io",
-    apiUrl: "https://api-holesky.etherscan.io/api",
     rpcUrl: "https://ethereum-holesky-rpc.publicnode.com",
   },
 ];

@@ -1,27 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import ConnectWallet from "@/components/ConnectWallet";
+import { useState, useEffect, useCallback } from "react";
+import { ethers } from "ethers";
+import TaskCard from "@/components/TaskCard";
+import Drawer from "@/components/Drawer";
 import UploadImage from "@/components/UploadImage";
 import DeployContract from "@/components/DeployContract";
-import GasOverview from "@/components/GasOverview";
 import BatchMint from "@/components/BatchMint";
-import ResultPanel from "@/components/ResultPanel";
-import NetworkSelector from "@/components/NetworkSelector";
-import { NETWORKS, type Network } from "@/lib/networks";
+import { NETWORKS, switchNetwork, type Network } from "@/lib/networks";
+import { connectWallet } from "@/lib/contract";
+import { formatError } from "@/lib/error";
 import type { PinataConfig } from "@/lib/ipfs";
 
-const STEPS = [
-  { label: "Connect Wallet", desc: "Link your MetaMask wallet" },
-  { label: "Gas Overview", desc: "Check balance and gas costs" },
-  { label: "Upload Image", desc: "Upload NFT artwork to IPFS" },
-  { label: "Deploy Contract", desc: "Deploy ERC-721 to Ethereum" },
-  { label: "Batch Mint", desc: "Mint NFTs in batches of 500" },
-  { label: "Results", desc: "View minting summary" },
-];
+type DrawerType = "image" | "contract" | "mint" | null;
 
 export default function Home() {
-  const [step, setStep] = useState(0);
   const [network, setNetwork] = useState<Network>(NETWORKS[0]);
   const [signer, setSigner] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState("");
@@ -32,287 +25,257 @@ export default function Home() {
   const [mintQuantity, setMintQuantity] = useState(0);
   const [txHashes, setTxHashes] = useState<string[]>([]);
   const [totalCostETH, setTotalCostETH] = useState("");
+  const [activeDrawer, setActiveDrawer] = useState<DrawerType>(null);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectError, setConnectError] = useState("");
+  const [switching, setSwitching] = useState(false);
+
+  // Gas price state for navbar
+  const [gasPriceGwei, setGasPriceGwei] = useState("");
+
+  const fetchGas = useCallback(async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum!);
+      const feeData = await provider.getFeeData();
+      const gp = feeData.gasPrice ?? 0n;
+      setGasPriceGwei(parseFloat(ethers.formatUnits(gp, "gwei")).toFixed(2));
+    } catch {}
+  }, []);
+
+  const refreshBalance = useCallback(async () => {
+    if (!walletAddress) return;
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum!);
+      const bal = await provider.getBalance(walletAddress);
+      setWalletBalance(ethers.formatEther(bal));
+    } catch {}
+  }, [walletAddress]);
+
+  // Auto-refresh gas every 15s when connected
+  useEffect(() => {
+    if (!walletAddress) return;
+    fetchGas();
+    refreshBalance();
+    const interval = setInterval(() => { fetchGas(); refreshBalance(); }, 15000);
+    return () => clearInterval(interval);
+  }, [walletAddress, fetchGas, refreshBalance]);
+
+  async function handleConnect() {
+    setConnectLoading(true);
+    setConnectError("");
+    try {
+      const wallet = await connectWallet();
+      setWalletAddress(wallet.address);
+      setWalletBalance(wallet.balance);
+      setSigner(wallet.signer);
+    } catch (e: any) {
+      setConnectError(formatError(e));
+    } finally {
+      setConnectLoading(false);
+    }
+  }
+
+  function handleDisconnect() {
+    setShowWalletMenu(false);
+    setSigner(null);
+    setWalletAddress("");
+    setWalletBalance("");
+    setImageCID("");
+    setPinataConfig(null);
+    setContractAddress("");
+    setTxHashes([]);
+    setTotalCostETH("");
+    setMintQuantity(0);
+  }
+
+  async function handleNetworkChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const net = NETWORKS.find((n) => n.chainId === parseInt(e.target.value));
+    if (!net) return;
+    setSwitching(true);
+    try {
+      await switchNetwork(net);
+      setNetwork(net);
+    } catch {}
+    setSwitching(false);
+  }
+
+  // Card statuses
+  const imageStatus = imageCID ? "done" : "ready";
+  const contractStatus = !imageCID ? "locked" : contractAddress ? "done" : "ready";
+  const mintStatus = !contractAddress ? "locked" : txHashes.length > 0 ? "done" : "ready";
+
+  // Not connected — show connect page
+  if (!walletAddress) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center px-6">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center text-2xl mb-6">⬡</div>
+        <h1 className="text-xl font-semibold text-[#0f172a] mb-2">ERC-721 Mint Tool</h1>
+        <p className="text-sm text-[#64748b] mb-8 text-center">Connect your MetaMask wallet to deploy and mint NFTs</p>
+        <button
+          onClick={handleConnect}
+          disabled={connectLoading}
+          className="px-8 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:bg-[#e2e8f0] disabled:text-[#94a3b8] text-white rounded-lg font-medium text-sm transition-colors"
+        >
+          {connectLoading ? "Connecting..." : "Connect MetaMask"}
+        </button>
+        {connectError && <p className="text-red-500 text-sm mt-4">{connectError}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* Top Nav */}
-      <nav className="border-b border-[#e2e8f0] bg-white px-6 py-3 flex items-center justify-between">
+      {/* Nav */}
+      <nav className="border-b border-[#e2e8f0] bg-white px-4 md:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center text-xs font-bold text-white">⬡</div>
-          <span className="text-[#0f172a] font-semibold text-sm">Ethereum ERC-721 NFT Mint Tool</span>
+          <span className="text-[#0f172a] font-semibold text-sm hidden md:inline">ERC-721 Mint Tool</span>
         </div>
-        <div className="flex items-center gap-3">
-          <NetworkSelector
-            onNetworkChange={(n) => setNetwork(n)}
-            disabled={step > 0}
-          />
-          {walletAddress && (
-            <div className="relative">
-              <button
-                onClick={() => setShowWalletMenu((v) => !v)}
-                className="flex items-center gap-2 bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-3 py-1.5 hover:bg-[#e2e8f0] transition-colors cursor-pointer"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="font-mono text-xs text-[#64748b]">
-                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                </span>
-              </button>
-              {showWalletMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowWalletMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-[#e2e8f0] rounded-lg shadow-lg py-1 min-w-[160px]">
-                    <button
-                      onClick={async () => {
-                        setShowWalletMenu(false);
-                        try {
-                          await window.ethereum!.request({
-                            method: "wallet_requestPermissions",
-                            params: [{ eth_accounts: {} }],
-                          });
-                          const { ethers } = await import("ethers");
-                          const provider = new ethers.BrowserProvider(window.ethereum!);
-                          const s = await provider.getSigner();
-                          const addr = await s.getAddress();
-                          const bal = await provider.getBalance(addr);
-                          setSigner(s);
-                          setWalletAddress(addr);
-                          setWalletBalance(ethers.formatEther(bal));
-                        } catch {}
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-[#0f172a] hover:bg-[#f1f5f9] transition-colors"
-                    >
-                      Switch Account
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowWalletMenu(false);
-                        setSigner(null);
-                        setWalletAddress("");
-                        setWalletBalance("");
-                        setImageCID("");
-                        setPinataConfig(null);
-                        setContractAddress("");
-                        setTxHashes([]);
-                        setTotalCostETH("");
-                        setStep(0);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#fef2f2] transition-colors"
-                    >
-                      Disconnect Wallet
-                    </button>
-                  </div>
-                </>
-              )}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Gas */}
+          {gasPriceGwei && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
+              <span>⛽</span>
+              <span className="font-medium">{gasPriceGwei}</span>
+              <span className="text-amber-500 hidden md:inline">Gwei</span>
             </div>
           )}
+          {/* Balance */}
+          <div className="text-xs font-medium text-[#0f172a] bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-2.5 py-1.5">
+            {parseFloat(walletBalance).toFixed(4)} ETH
+          </div>
+          {/* Wallet */}
+          <div className="relative">
+            <button
+              onClick={() => setShowWalletMenu((v) => !v)}
+              className="flex items-center gap-2 bg-[#f1f5f9] border border-[#e2e8f0] rounded-md px-3 py-1.5 hover:bg-[#e2e8f0] transition-colors cursor-pointer"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="font-mono text-xs text-[#64748b]">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
+            </button>
+            {showWalletMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowWalletMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-[#e2e8f0] rounded-lg shadow-lg py-1 min-w-[180px]">
+                  {/* Network selector */}
+                  <div className="px-4 py-2 border-b border-[#e2e8f0]">
+                    <p className="text-[10px] uppercase tracking-wider text-[#94a3b8] mb-1.5">Network</p>
+                    <select
+                      value={network.chainId}
+                      onChange={handleNetworkChange}
+                      disabled={switching}
+                      className="w-full bg-[#f1f5f9] border border-[#e2e8f0] rounded px-2 py-1 text-xs text-[#64748b] focus:outline-none"
+                    >
+                      {NETWORKS.map((n) => (
+                        <option key={n.chainId} value={n.chainId}>{n.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setShowWalletMenu(false);
+                      try {
+                        await window.ethereum!.request({
+                          method: "wallet_requestPermissions",
+                          params: [{ eth_accounts: {} }],
+                        });
+                        const provider = new ethers.BrowserProvider(window.ethereum!);
+                        const s = await provider.getSigner();
+                        const addr = await s.getAddress();
+                        const bal = await provider.getBalance(addr);
+                        setSigner(s);
+                        setWalletAddress(addr);
+                        setWalletBalance(ethers.formatEther(bal));
+                      } catch {}
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-[#0f172a] hover:bg-[#f1f5f9] transition-colors"
+                  >
+                    Switch Account
+                  </button>
+                  <button
+                    onClick={handleDisconnect}
+                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#fef2f2] transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
-      {/* Progress Bar */}
-      <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex items-center">
-        {STEPS.map((_, i) => (
-          <div key={i} className="flex items-center flex-1">
-            {i > 0 && (
-              <div className={`flex-1 h-[3px] transition-colors ${
-                i <= step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
-              }`} />
-            )}
-            <button
-              onClick={() => { if (i <= step) setStep(i); }}
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-colors ${
-                i < step
-                  ? "bg-[#0ea5e9] text-white cursor-pointer hover:bg-[#0284c7]"
-                  : i === step
-                  ? "bg-[#0ea5e9] text-white ring-2 ring-[#0ea5e9]/30"
-                  : "bg-[#e2e8f0] text-[#94a3b8] cursor-default"
-              }`}
-              disabled={i > step}
-            >
-              {i + 1}
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`flex-1 h-[3px] transition-colors ${
-                i < step ? "bg-[#0ea5e9]" : "bg-[#e2e8f0]"
-              }`} />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Main Content */}
-      {step === 0 ? (
-        <div className="max-w-lg mx-auto px-6">
-          <ConnectWallet
-            onConnected={(address, balance, s) => {
-              setWalletAddress(address);
-              setWalletBalance(balance);
-              setSigner(s);
-              setStep(1);
-            }}
+      {/* Task Cards */}
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <TaskCard
+            icon="📁"
+            title="Prepare Image"
+            status={imageStatus as any}
+            summary={imageCID ? `ipfs://${imageCID.slice(0, 8)}...` : undefined}
+            onOpen={() => setActiveDrawer("image")}
+          />
+          <TaskCard
+            icon="📄"
+            title="Deploy Contract"
+            status={contractStatus as any}
+            summary={contractAddress ? `${contractAddress.slice(0, 8)}...${contractAddress.slice(-4)}` : undefined}
+            onOpen={() => setActiveDrawer("contract")}
+          />
+          <TaskCard
+            icon="⛏"
+            title="Mint NFTs"
+            status={mintStatus as any}
+            summary={txHashes.length > 0 ? `${mintQuantity.toLocaleString()} minted · ${totalCostETH} ETH` : undefined}
+            onOpen={() => setActiveDrawer("mint")}
           />
         </div>
-      ) : (
-        <div className="max-w-3xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-[1fr_240px] gap-5">
-            {/* Left: Action Area */}
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
-              <div className="mb-1 flex items-center gap-3">
-                <span className="text-xs font-semibold text-[#0ea5e9] tracking-wider uppercase">Step {step + 1}</span>
-                <div className="flex-1 h-px bg-[#e2e8f0]" />
-              </div>
-              <h2 className="text-lg font-semibold text-[#0f172a] mb-1">{STEPS[step].label}</h2>
-              <p className="text-sm text-[#64748b] mb-6">{STEPS[step].desc}</p>
+      </div>
 
-              {step === 1 && (
-                <GasOverview
-                  walletAddress={walletAddress}
-                  walletBalance={walletBalance}
-                  onContinue={() => setStep(2)}
-                />
-              )}
+      {/* Drawers */}
+      <Drawer open={activeDrawer === "image"} onClose={() => setActiveDrawer(null)} title="Prepare Image">
+        <UploadImage
+          onDone={(cid, config) => {
+            setImageCID(cid);
+            setPinataConfig(config);
+            setActiveDrawer(null);
+          }}
+        />
+      </Drawer>
 
-              {step === 2 && (
-                <UploadImage
-                  onUploaded={(cid, config) => {
-                    setImageCID(cid);
-                    setPinataConfig(config);
-                    setStep(3);
-                  }}
-                />
-              )}
+      <Drawer open={activeDrawer === "contract"} onClose={() => setActiveDrawer(null)} title="Deploy Contract">
+        {pinataConfig && (
+          <DeployContract
+            signer={signer}
+            imageCID={imageCID}
+            pinataConfig={pinataConfig}
+            explorerUrl={network.explorerUrl}
+            walletAddress={walletAddress}
+            onDone={(addr) => {
+              setContractAddress(addr);
+              setActiveDrawer(null);
+            }}
+          />
+        )}
+      </Drawer>
 
-              {step === 3 && pinataConfig && (
-                <DeployContract
-                  signer={signer}
-                  imageCID={imageCID}
-                  pinataConfig={pinataConfig}
-                  explorerUrl={network.explorerUrl}
-                  walletAddress={walletAddress}
-                  onDeployed={(addr) => {
-                    setContractAddress(addr);
-                    setStep(4);
-                  }}
-                />
-              )}
-
-              {step === 4 && (
-                <BatchMint
-                  signer={signer}
-                  contractAddress={contractAddress}
-                  walletAddress={walletAddress}
-                  explorerUrl={network.explorerUrl}
-                  onComplete={(hashes, cost, qty) => {
-                    setTxHashes(hashes);
-                    setTotalCostETH(cost);
-                    setMintQuantity(qty);
-                    setStep(5);
-                  }}
-                />
-              )}
-
-              {step === 5 && (
-                <ResultPanel
-                  contractAddress={contractAddress}
-                  totalMinted={mintQuantity}
-                  txHashes={txHashes}
-                  totalCostETH={totalCostETH}
-                  explorerUrl={network.explorerUrl}
-                />
-              )}
-            </div>
-
-            {/* Right: Info Panel */}
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 h-fit">
-              <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-4">Progress</h4>
-              <div className="space-y-3 mb-6">
-                {STEPS.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {i < step ? (
-                        <span className="text-emerald-500 text-xs">✓</span>
-                      ) : i === step ? (
-                        <span className="text-[#0ea5e9] text-xs">→</span>
-                      ) : (
-                        <span className="text-[#cbd5e1] text-xs">○</span>
-                      )}
-                      <span className={`text-xs ${
-                        i < step ? "text-emerald-600" : i === step ? "text-[#0ea5e9]" : "text-[#94a3b8]"
-                      }`}>
-                        {s.label}
-                      </span>
-                    </div>
-                    <span className={`text-[10px] ${
-                      i < step ? "text-[#94a3b8]" : i === step ? "text-[#64748b]" : "text-[#cbd5e1]"
-                    }`}>
-                      {i < step ? "Done" : i === step ? "In progress" : "Pending"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {walletAddress && (
-                <div className="border-t border-[#e2e8f0] pt-4 mb-4">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">Wallet</h4>
-                  <p className="font-mono text-xs text-[#0f172a] break-all">{walletAddress}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <p className="text-xs text-[#64748b]">{parseFloat(walletBalance).toFixed(4)} ETH</p>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const { ethers } = await import("ethers");
-                          const provider = new ethers.BrowserProvider(window.ethereum!);
-                          const bal = await provider.getBalance(walletAddress);
-                          setWalletBalance(ethers.formatEther(bal));
-                        } catch {}
-                      }}
-                      className="text-[#94a3b8] hover:text-[#0ea5e9] transition-colors"
-                      title="Refresh balance"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="border-t border-[#e2e8f0] pt-4">
-                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">Network</h4>
-                <p className="text-xs text-[#0f172a]">{network.name}</p>
-                <p className="text-[10px] text-[#94a3b8] mt-1">Chain ID: {network.chainId}</p>
-              </div>
-
-              {imageCID && (
-                <div className="border-t border-[#e2e8f0] pt-4 mt-4">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">IPFS Image</h4>
-                  <p className="font-mono text-[10px] text-[#0f172a] break-all">{imageCID}</p>
-                  <a
-                    href={`https://gateway.pinata.cloud/ipfs/${imageCID}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-[#0ea5e9] hover:underline mt-1 inline-block"
-                  >
-                    Preview &rarr;
-                  </a>
-                </div>
-              )}
-
-              {contractAddress && (
-                <div className="border-t border-[#e2e8f0] pt-4 mt-4">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8] mb-2">Contract</h4>
-                  <a
-                    href={`${network.explorerUrl}/address/${contractAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-xs text-[#0ea5e9] hover:underline break-all"
-                  >
-                    {contractAddress}
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <Drawer open={activeDrawer === "mint"} onClose={() => setActiveDrawer(null)} title="Mint NFTs">
+        <BatchMint
+          signer={signer}
+          contractAddress={contractAddress}
+          walletAddress={walletAddress}
+          explorerUrl={network.explorerUrl}
+          imageCID={imageCID}
+          onComplete={(hashes, cost, qty) => {
+            setTxHashes(hashes);
+            setTotalCostETH(cost);
+            setMintQuantity(qty);
+          }}
+        />
+      </Drawer>
     </div>
   );
 }
