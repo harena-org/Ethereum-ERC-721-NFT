@@ -7,3 +7,9 @@ cache/
 typechain-types/
 frontend/.next/
 .DS_Store
+.next/
+.superpowers/
+cli/nft-cli
+cli/build/
+cli/metadata/
+cli/png/
