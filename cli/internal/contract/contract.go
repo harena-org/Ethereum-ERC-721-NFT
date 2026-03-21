@@ -142,7 +142,7 @@ func MintBatch(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, contr
 			return results, fmt.Errorf("failed to pack mintBatch args: %w", err)
 		}
 
-		gasLimit := uint64(50000 + uint64(batchSize)*30000)
+		gasLimit := uint64(80000 + uint64(batchSize)*3500)
 		tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), gasLimit, gasPrice, input)
 		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 		if err != nil {
