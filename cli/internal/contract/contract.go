@@ -30,7 +30,7 @@ type MintResult struct {
 	BatchEnd   int
 }
 
-func Deploy(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, name, symbol, baseURI string) (*DeployResult, error) {
+func Deploy(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, name, symbol, baseURI string, royaltyReceiver common.Address, royaltyBps uint64) (*DeployResult, error) {
 	client, err := ethclient.Dial(rpcURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to RPC: %w", err)
@@ -66,7 +66,7 @@ func Deploy(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, name, sy
 	}
 
 	bytecode := common.FromHex(contracts.BatchNFTBytecode)
-	input, err := parsed.Pack("", name, symbol, baseURI)
+	input, err := parsed.Pack("", name, symbol, baseURI, royaltyReceiver, new(big.Int).SetUint64(royaltyBps))
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack constructor args: %w", err)
 	}

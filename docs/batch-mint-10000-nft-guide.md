@@ -28,6 +28,7 @@ go build -o nft-cli .
 3. 点击 **New Key**，勾选以下权限：
    - `pinFileToIPFS`
    - `pinJSONToIPFS`（如果有的话）
+   - `pinList`（用于 `image list` 查询已上传文件）
 4. 记录 **API Key** 和 **API Secret**
 
 ### 1.3 设置环境变量
@@ -125,6 +126,18 @@ images/
 
 **记下输出的 CID**，下一步要用。
 
+### 4.3 查看已上传的文件（可选）
+
+```bash
+./nft-cli image list
+```
+
+输出已上传到 Pinata 的所有 pin 记录（名称、CID、大小、上传日期）。支持分页和状态过滤：
+
+```bash
+./nft-cli image list --limit 20 --offset 0 --status pinned
+```
+
 ---
 
 ## 第五步：生成元数据（Metadata）
@@ -177,13 +190,16 @@ Base URI: ipfs://QmAaaBbbCcc/
   -p "你的本地密码" \
   --name "你的NFT集合名称" \
   --symbol "SYMBOL" \
-  --base-uri "ipfs://QmAaaBbbCcc/"
+  --base-uri "ipfs://QmAaaBbbCcc/" \
+  --royalty-bps 100
 ```
 
 参数说明：
 - `--name`：NFT 集合名称，会显示在 OpenSea 等平台上
 - `--symbol`：3-5 个字母的缩写代号
 - `--base-uri`：上一步获得的元数据 IPFS URI（**末尾要有 `/`**）
+- `--royalty-bps`：版税，单位为基点（100 = 1%），默认值 100（即 1%）。例如 250 = 2.5%，500 = 5%
+- `--royalty-receiver`：版税接收地址，默认为部署者钱包地址。可指定其他地址接收版税
 
 成功输出：
 ```
@@ -254,11 +270,15 @@ export PINATA_API_SECRET="yyy"
 # 8. 上传元数据 -> 得到 BASE_URI
 ./nft-cli metadata upload --dir ./metadata
 
-# 9. 部署合约 -> 得到 CONTRACT_ADDR
-./nft-cli deploy -w 0xWALLET -p "密码" \
-  --name "MyNFT" --symbol "MNT" --base-uri "ipfs://META_CID/"
+# 9. 查看已上传文件（可选）
+./nft-cli image list
 
-# 10. 批量铸造
+# 10. 部署合约 -> 得到 CONTRACT_ADDR（默认 1% 版税）
+./nft-cli deploy -w 0xWALLET -p "密码" \
+  --name "MyNFT" --symbol "MNT" --base-uri "ipfs://META_CID/" \
+  --royalty-bps 100
+
+# 11. 批量铸造
 ./nft-cli mint -w 0xWALLET -p "密码" \
   --contract CONTRACT_ADDR -q 10000
 ```

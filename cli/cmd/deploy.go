@@ -9,6 +9,8 @@ import (
 	"nft-cli/internal/network"
 	"nft-cli/internal/wallet"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +23,8 @@ var deployCmd = &cobra.Command{
 		name, _ := cmd.Flags().GetString("name")
 		symbol, _ := cmd.Flags().GetString("symbol")
 		baseURI, _ := cmd.Flags().GetString("base-uri")
+		royaltyBps, _ := cmd.Flags().GetUint64("royalty-bps")
+		royaltyReceiverFlag, _ := cmd.Flags().GetString("royalty-receiver")
 
 		if name == "" || symbol == "" || baseURI == "" {
 			return fmt.Errorf("name, symbol, and base-uri are required")
@@ -41,9 +45,18 @@ var deployCmd = &cobra.Command{
 			return fmt.Errorf("load wallet: %w", err)
 		}
 
-		fmt.Printf("Deploying to %s (chainID=%d)...\n", net.Name, net.ChainID)
+		// Royalty receiver defaults to deployer address
+		var royaltyReceiver common.Address
+		if royaltyReceiverFlag != "" {
+			royaltyReceiver = common.HexToAddress(royaltyReceiverFlag)
+		} else {
+			royaltyReceiver = crypto.PubkeyToAddress(privateKey.PublicKey)
+		}
 
-		result, err := contract.Deploy(net.RPC, net.ChainID, privateKey, name, symbol, baseURI)
+		fmt.Printf("Deploying to %s (chainID=%d)...\n", net.Name, net.ChainID)
+		fmt.Printf("Royalty: %d bps (%.2f%%) -> %s\n", royaltyBps, float64(royaltyBps)/100, royaltyReceiver.Hex())
+
+		result, err := contract.Deploy(net.RPC, net.ChainID, privateKey, name, symbol, baseURI, royaltyReceiver, royaltyBps)
 		if err != nil {
 			return fmt.Errorf("deploy failed: %w", err)
 		}
@@ -77,4 +90,6 @@ func init() {
 	deployCmd.Flags().String("name", "", "NFT collection name")
 	deployCmd.Flags().String("symbol", "", "NFT symbol")
 	deployCmd.Flags().String("base-uri", "", "Base URI for token metadata")
+	deployCmd.Flags().Uint64("royalty-bps", 100, "Royalty in basis points (100 = 1%, default: 100)")
+	deployCmd.Flags().String("royalty-receiver", "", "Royalty receiver address (default: deployer)")
 }
