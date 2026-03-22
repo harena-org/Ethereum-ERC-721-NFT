@@ -3,16 +3,39 @@ package metadata
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 )
 
+// Attribute represents a single NFT trait.
+type Attribute struct {
+	TraitType string `json:"trait_type"`
+	Value     int    `json:"value"`
+}
+
 // NFTMetadata represents the metadata for a single NFT token.
 type NFTMetadata struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Image       string `json:"image"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Image       string      `json:"image"`
+	Attributes  []Attribute `json:"attributes"`
+}
+
+var attributeNames = []string{
+	"Brawn", "Swift", "Wit", "Chill", "Tough", "Wander", "Crafty", "Lucky",
+}
+
+func generateAttributes() []Attribute {
+	attrs := make([]Attribute, len(attributeNames))
+	for i, name := range attributeNames {
+		attrs[i] = Attribute{
+			TraitType: name,
+			Value:     rand.Intn(60) + 40, // 40-99
+		}
+	}
+	return attrs
 }
 
 // GenerateAll creates metadata JSON files for each token ID from 1 to count.
@@ -43,6 +66,7 @@ func GenerateAll(imageCID string, collectionName string, description string, cou
 			Name:        fmt.Sprintf("%s #%s", collectionName, tokenID),
 			Description: description,
 			Image:       fmt.Sprintf("ipfs://%s/%s", imageCID, filename),
+			Attributes:  generateAttributes(),
 		}
 
 		jsonData, err := json.MarshalIndent(meta, "", "  ")
