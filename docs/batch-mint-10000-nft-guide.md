@@ -8,6 +8,7 @@
 | 钱包助记词 | 12 词 BIP39 助记词 |
 | 10,000 张图片 | 放在同一目录下，文件名建议按顺序编号（如 `1.png`, `2.png`, ...`10000.png`） |
 | ETH 余额 | 钱包中需要有足够的 ETH 支付 gas 费 |
+| Rarible API Key | （可选，用于批量上架）在 https://api.rarible.org/registration 注册获取 |
 | nft-cli 工具 | 本项目编译的 CLI 工具 |
 
 ---
@@ -80,6 +81,7 @@ export PINATA_API_SECRET="你的API_Secret"
 |------|----------|------|
 | 部署合约 | ~2,000,000 | 一次性 |
 | 铸造 10,000 个 (ERC-721A) | ~20 批 x ~1,830,000 | 每批 500 个 |
+| 授权 Rarible Transfer Proxy | ~50,000 | 一次性（上架前） |
 
 > **提示**：Sepolia 测试币可从水龙头免费获取，搜索 "Sepolia faucet"。
 
@@ -238,6 +240,51 @@ Batch 9501-10000 confirmed, gas used: 184000
 
 ---
 
+## 第九步：批量上架到 Rarible（Sepolia 测试网）
+
+铸造完成后，可以通过 CLI 批量将 NFT 上架到 Rarible 市场。
+
+```bash
+./nft-cli market rarible sepolia list \
+  -w 0x你的钱包地址 \
+  -p "你的本地密码" \
+  --contract 0x你的NFT合约地址 \
+  --price 0.1 \
+  --from-id 1 --to-id 10000
+```
+
+参数说明：
+- `--contract`：NFT 合约地址
+- `--price`：每个 NFT 的售价（ETH），默认 0.1 ETH
+- `--from-id` / `--to-id`：上架的 Token ID 范围
+- `--exchange`：Rarible Exchange V2 合约地址（默认已配置 Sepolia 地址）
+- `--transfer-proxy`：Rarible Transfer Proxy 地址（默认已配置 Sepolia 地址）
+- `--api-key`：Rarible API Key（或通过 `RARIBLE_API_KEY` 环境变量设置）
+
+CLI 会执行两步操作：
+
+1. **链上授权**（一次性）：调用 `setApprovalForAll` 授权 Rarible Transfer Proxy 代为转移你的 NFT，消耗少量 gas
+2. **链下签名并提交**：对每个 NFT 生成 EIP-712 签名的卖单并提交到 Rarible API，**不消耗 gas**
+
+```
+Step 1: Approving transfer proxy 0xA094...32af...
+Approved! tx: 0x...
+
+Step 2: Creating 10000 sell orders...
+  [100/10000] Listed 100 NFTs, 0 failed
+  [200/10000] Listed 200 NFTs, 0 failed
+  ...
+  [10000/10000] Listed 10000 NFTs, 0 failed
+
+Done! Listed: 10000, Failed: 0
+```
+
+上架完成后，可在 https://testnet.rarible.com 查看你的 NFT 集合。
+
+> **提示**：如果中途中断，可以通过 `--from-id` 指定从中断处继续上架。
+
+---
+
 ## 完整命令速查
 
 ```bash
@@ -281,6 +328,12 @@ export PINATA_API_SECRET="yyy"
 # 11. 批量铸造
 ./nft-cli mint -w 0xWALLET -p "密码" \
   --contract CONTRACT_ADDR -q 10000
+
+# 12. 批量上架到 Rarible（Sepolia 测试网，0.1 ETH/个）
+./nft-cli market rarible sepolia list \
+  -w 0xWALLET -p "密码" \
+  --contract CONTRACT_ADDR --price 0.1 \
+  --from-id 1 --to-id 10000
 ```
 
 ---
@@ -294,3 +347,5 @@ export PINATA_API_SECRET="yyy"
 | 铸造中断 | 记录已完成的批次数（每批 500），用剩余数量重新 mint |
 | Gas 费过高 | 选择 gas 价格较低的时段操作，可参考 https://etherscan.io/gastracker |
 | 图片顺序不对 | 文件名必须零填充（00001.png ~ 10000.png），CLI 按字典序排序，不补零会导致映射错乱 |
+| 上架中断 | 用 `--from-id` 从中断的 Token ID 继续上架，已上架的不会重复 |
+| Rarible API 报错 | 检查 API Key 是否正确，可在 https://api.rarible.org/registration 获取 |

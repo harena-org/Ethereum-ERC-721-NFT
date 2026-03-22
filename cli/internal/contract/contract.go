@@ -101,6 +101,61 @@ func Deploy(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, name, sy
 	}, nil
 }
 
+// SetApprovalForAll approves an operator to transfer all NFTs on behalf of the owner.
+func SetApprovalForAll(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, contractAddr string, operator string, approved bool) (string, error) {
+	client, err := ethclient.Dial(rpcURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to RPC: %w", err)
+	}
+	defer client.Close()
+
+	parsed, err := abi.JSON(strings.NewReader(contracts.BatchNFTABI))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+	contractAddress := common.HexToAddress(contractAddr)
+	operatorAddress := common.HexToAddress(operator)
+
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		return "", fmt.Errorf("failed to get nonce: %w", err)
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("failed to get gas price: %w", err)
+	}
+
+	input, err := parsed.Pack("setApprovalForAll", operatorAddress, approved)
+	if err != nil {
+		return "", fmt.Errorf("failed to pack args: %w", err)
+	}
+
+	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), 100000, gasPrice, input)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign transaction: %w", err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return "", fmt.Errorf("failed to send transaction: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(context.Background(), client, signedTx)
+	if err != nil {
+		return "", fmt.Errorf("failed to wait for transaction: %w", err)
+	}
+
+	if receipt.Status == 0 {
+		return "", fmt.Errorf("transaction failed")
+	}
+
+	return signedTx.Hash().Hex(), nil
+}
+
 func MintBatch(rpcURL string, chainID int64, privateKey *ecdsa.PrivateKey, contractAddr string, to string, quantity int) ([]MintResult, error) {
 	client, err := ethclient.Dial(rpcURL)
 	if err != nil {
